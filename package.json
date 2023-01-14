@@ -1,7 +1,7 @@
 {
   "name": "@unrealsoftware/node_udp",
-  "version": "1.0.2",
-  "description": "A basic node.js module supporting binary communication via plain UDP",
+  "version": "1.0.3",
+  "description": "A basic node.js module supporting binary communication via plain UDP with useful read/write methods. Light-weight & no dependencies!",
   "keywords": [
     "udp",
     "binary",
@@ -17,6 +17,6 @@
     "type": "git",
     "url": "https://github.com/UnrealSoftware/NodeUDP.git"
   },
-  "author": "Peter Schauss <peter@peterschauss.de> (https://peterschauss.de)",
+  "author": "Peter Schauss <support@unrealsoftware.de> (https://www.unrealsoftware.de)",
   "license": "MIT License"
 }

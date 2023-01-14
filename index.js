@@ -27,15 +27,17 @@ module.exports = class NodeUdp {
 		this.outStream = new StreamBuffer();
 
 		this.udp.on('listening', () => {
+			this.isBound = true;
 			const address = this.udp.address();
 			console.log(`UDP socket listening on ${address.address}:${address.port}`);
-			this.isBound = true;
 		});
 		
 		this.udp.on('error', (err) => {
 			console.log(`UDP socket error:\n${err.stack}`);
+
 			this.udp.close();
 			this.isBound = false;
+			
 			if (this.rebindOnError) {
 				setTimeout(bindSocket(this.port), this.rebindDelay);
 			} else {
@@ -59,17 +61,25 @@ module.exports = class NodeUdp {
 	}
 
 	/**
-	 * Binds the UDP socket to a port
+	 * Binds the UDP socket to a port.
+	 * When already bound this will close the socket and re-open it.
 	 * @param {number} port - UDP port to bind to (0-65535)
 	 */
 	bindSocket(port) {
+		if (this.isBound)
+		{
+			this.udp.close();
+			this.isBound = false;
+		}
 		this.port = port;
 		console.log(`trying to bind UDP socket ${port}...`);
 		this.udp.bind(port);
 	}
 
 	/**
-	 * Clears the outgoing buffer before writing a response
+	 * Clears the outgoing buffer.
+	 * This has to be done before writing anything to it.
+	 * When done with writing either call sendResponse or sendResponseTo.
 	 */
 	startResponse() {
 		this.outStream.clearBuffer();
