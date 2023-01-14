@@ -1,9 +1,11 @@
 const StreamBuffer = require('./inc/stream_buffer.js');
 const dgram = require('dgram');
 
-exports = class nodeudp {
+module.exports = class NodeUdp {
 	/**
-	 * Creates a new Node UDP instance which can be used to send and receive UDP messages.
+	 * Creates a new Node UDP socket instance which can be used to send and receive UDP messages.
+	 * When startPort is specified (> -1), the socket will be bound to this port.
+	 * Otherwise bindSocket needs to be called before the socket is actually active.
 	 * @param onResponse - Response handler
 	 * @param {number} startPort - Instantly bind to this port (-1 = to not bind)
 	 * @param {boolean} rebindOnError - Automatically rebind when a socket error occurs?
@@ -24,35 +26,35 @@ exports = class nodeudp {
 		this.inStream = new StreamBuffer();
 		this.outStream = new StreamBuffer();
 
-		udp.on('listening', () => {
-			const address = udp.address();
+		this.udp.on('listening', () => {
+			const address = this.udp.address();
 			console.log(`UDP socket listening on ${address.address}:${address.port}`);
-			isBound = true;
+			this.isBound = true;
 		});
 		
-		udp.on('error', (err) => {
+		this.udp.on('error', (err) => {
 			console.log(`UDP socket error:\n${err.stack}`);
-			udp.close();
-			isBound = false;
-			if (rebindOnError) {
-				setTimeout(bindSocket(port), rebindDelay);
+			this.udp.close();
+			this.isBound = false;
+			if (this.rebindOnError) {
+				setTimeout(bindSocket(this.port), this.rebindDelay);
 			} else {
 				console.log(`UDP socket closed. rebindOnError disabled.`);
 			}
 		});
 		
-		udp.on('message', (msg, rinfo) => {
-			inStream.setBuffer(msg);
-			const length = inStream.length();
+		this.udp.on('message', (msg, rinfo) => {
+			this.inStream.setBuffer(msg);
+			const length = this.inStream.length();
 		
-			srcAddress = rinfo.address;
-			srcPort = rinfo.port;
+			this.srcAddress = rinfo.address;
+			this.srcPort = rinfo.port;
 
-			onResponse(inStream, length, srcAddress, srcPort);
+			onResponse(this.inStream, length, this.srcAddress, this.srcPort);
 		});
 
 		if (startPort > -1) {
-			bindSocket(startPort);
+			this.bindSocket(startPort);
 		}
 	}
 
@@ -63,21 +65,21 @@ exports = class nodeudp {
 	bindSocket(port) {
 		this.port = port;
 		console.log(`trying to bind UDP socket ${port}...`);
-		udp.bind(port);
+		this.udp.bind(port);
 	}
 
 	/**
 	 * Clears the outgoing buffer before writing a response
 	 */
 	startResponse() {
-		outStream.clearBuffer();
+		this.outStream.clearBuffer();
 	}
 	
 	/**
 	 * Sends a response to the source of the last incoming message
 	 */
 	sendResponse() {
-		sendResponseTo(srcAddress, srcPort);
+		this.sendResponseTo(this.srcAddress, this.srcPort);
 	}
 	
 	/**
@@ -86,11 +88,11 @@ exports = class nodeudp {
 	 * @param {number} dstPort - destination port
 	 */
 	sendResponseTo(dstAddress, dstPort) {
-		if (!isBound) {
+		if (!this.isBound) {
 			console.error(`UDP socket can't send response. Not bound!`);
 			return;
 		}
 
-		udp.send(out.buf, 0, out.offset, _dstPort, _dstAddress);
+		this.udp.send(this.outStream.buf, 0, this.outStream.offset, dstPort, dstAddress);
 	}
 }
