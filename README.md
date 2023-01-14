@@ -28,10 +28,10 @@ We are talking about plain binary UDP here. Low level networking. No extra proto
 - Unreliable: Messages can get lost. No acknowledgement or re-send mechanism.
 - No guaranteed order: Messages can arrive in any order (or not at all).
 - Message size limitation: Max. size of a message is limited by the MTU (which is determined by used hard- and software). From my experience keeping the payload size below ~1200 bytes should work fine in most cases.
+- Currently only a few popular data types are supported and they are all little endian. Support for big endian and more types could be added easily.
 - Currently the string methods are for sending ANSI ASCII strings only. UTF-8 or other encodings could be added easily though.
 
-
-## Sample Usage
+## Sample
 Here's a server which receives messages, reads the first byte and sends it back:
 ```javascript
 // import the module
@@ -55,5 +55,32 @@ function onResponse(data, length, addr, port) {
 }
 ```
 
+## Constructor
+The `NodeUdp` constructor has 4 parameters:
+```javascript
+const udp = new NodeUdp(onResponse, startPort = -1, rebindOnError = true, rebindDelay = 3000)
+```
+- `onResponse`: The response callback. Mandatory. See "Reading Messages" for details.
+- `startPort` (optional): The port the UDP socket will be bound to on construction. If you don't provide a port you have to bind the socket manually using `udp.bindSocket(port)`.
+- `rebindOnError` (optional): Try to bind the socket again after an error? This defaults to true. Set to false if you don't want the socket to be bound automatically.
+- `rebindDelay` (optional): Delay (in milliseconds) after which the program will attempt to bind the socket again after an error occurred. Defaults to 3000 ms (3 milliseconds). Not relevant if `rebindOnError` is false.
+
+## Reading Messages
+Messages are read in the response callback you specify as the first parameter in the constructor of `NodeUdp`. It has these parameters:
+- `data` (StreamBuffer): The data you received. You can use the read-methods mentioned above to read this data. Before reading you can use `data.avail()` to check if enough bytes are left for reading. Alternatively you can use `data.canRead()` which returns true if at least one readable byte is left.
+- `length` (number): The length (in bytes) of data. You can also use `data.length()` to retrieve this value.
+- `addr` (string): The address of the sender of the message. `udp.srcAddrees` will have the same value.
+- `port` (number): The port of the sender of the message. `udp.srcPort` will have the same value.
+
+## Sending Messages
+Sending a message happens in 3 steps:
+- A call to `udp.startResponse()` which clears the contents of `udp.outStream`. You can skip this call if you want to send the same data to multiple addresses.
+- Writing data. This happens via `udp.outStream.writeX` with writeX being one of the write methods mentioned above. e.g. `udp.outStream.writeString('Hello, world!')`. You can call as many write methods as you want. The data will be written in the same order you call the methods. The recipient has to read it in the same order. Make sure that you don't write too much data into a single message (MTU limits).
+- Calling `udp.sendResponse()` will send the data to the address and port of the last sender. Alternatively you can use `udp.sendResponseTo(addr, port)` to send the message to a specified address and port.
+
+:warning: Sending messages will fail with an error message if the socket is not bound. You can check this with `udp.isBound`.
+
 ## MIT License
 Do with this whatever you want. No limitations. Please keep the copyright notice though. See LICENSE for details.
+
+Made with :green_heart: in :anchor: Hamburg, Germany
