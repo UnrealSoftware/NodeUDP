@@ -37,7 +37,7 @@ module.exports = class NodeUdp {
 
 			this.udp.close();
 			this.isBound = false;
-			
+
 			if (this.rebindOnError) {
 				setTimeout(bindSocket(this.port), this.rebindDelay);
 			} else {
@@ -80,9 +80,10 @@ module.exports = class NodeUdp {
 	 * Clears the outgoing buffer.
 	 * This has to be done before writing anything to it.
 	 * When done with writing either call sendResponse or sendResponseTo.
+	 * @param {number} size - max. size of the buffer in bytes
 	 */
-	startResponse() {
-		this.outStream.clearBuffer();
+	startResponse(size) {
+		this.outStream.clearBuffer(size);
 	}
 	
 	/**

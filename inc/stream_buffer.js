@@ -1,34 +1,64 @@
+/**
+ * Utility class which is basically a wrapper around Buffer.
+ * Internally keeps track of an offset and provides "stream-style" methods for reading/writing data.
+ */
 module.exports = class StreamBuffer {
+	/**
+	 * Creates a new stream buffer without allocating buffer memory.
+	 */
 	constructor() {
 		this.offset = 0;
 		this.buf;
 		this.len = 0;		
 	}
 
+	/**
+	 * Sets a new buffer and resets the offset.
+	 * @param {Buffer} setbuf - the buffer to set
+	 */
 	setBuffer(setbuf) {
 		this.offset = 0;
 		this.buf = setbuf;
 		this.len = setbuf.byteLength;
 	}
 	
-	clearBuffer() {
+	/**
+	 * Sets an empty buffer and resets the offset.
+	 * @param {number} size - size (in bytes) of the buffer
+	 */
+	clearBuffer(size = 1024) {
 		this.offset = 0;
-		this.buf = Buffer.alloc(1024);
+		this.buf = Buffer.alloc(size);
 		this.len = this.buf.byteLength;
 	}
 	
+	/**
+	 * Gets the length of the buffer in bytes.
+	 * @returns {number} the length in bytes
+	 */
 	length() {
 		return this.len;
 	}
 	
+	/**
+	 * Checks if there is still readable data in this buffer.
+	 * @returns {boolean} true if can read at least 1 byte, false otherwise
+	 */
 	canRead() {
 		return this.offset < this.len;
 	}
 	
+	/**
+	 * Gets the number of readable bytes in this buffer.
+	 * @returns {number} the amount of readable bytes
+	 */
 	avail() {
 		return this.len - this.offset;
 	}
 
+	/**
+	 * Reduces the internal size of this buffer to its current read/write offset.
+	 */
 	trim() {
 		if (this.buf.byteLength !== this.offset) {
 			console.log(`resizing buffer from len ${this.buf.byteLength} to ${this.offset}`)

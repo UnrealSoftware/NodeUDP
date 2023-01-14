@@ -65,18 +65,20 @@ const udp = new NodeUdp(onResponse, startPort = -1, rebindOnError = true, rebind
 - `rebindOnError` (optional): Try to bind the socket again after an error? This defaults to true. Set to false if you don't want the socket to be bound automatically.
 - `rebindDelay` (optional): Delay (in milliseconds) after which the program will attempt to bind the socket again after an error occurred. Defaults to 3000 ms (3 milliseconds). Not relevant if `rebindOnError` is false.
 
-## Reading Messages
+## Receiving Messages
 Messages are read in the response callback you specify as the first parameter in the constructor of `NodeUdp`. It has these parameters:
 - `data` (StreamBuffer): The data you received. You can use the read-methods mentioned above to read this data. Before reading you can use `data.avail()` to check if enough bytes are left for reading. Alternatively you can use `data.canRead()` which returns true if at least one readable byte is left.
 - `length` (number): The length (in bytes) of data. You can also use `data.length()` to retrieve this value.
 - `addr` (string): The address of the sender of the message. `udp.srcAddrees` will have the same value.
 - `port` (number): The port of the sender of the message. `udp.srcPort` will have the same value.
 
+:information_source: Data in a message always has to be read in the same order it was written.
+
 ## Sending Messages
 Sending a message happens in 3 steps:
-- A call to `udp.startResponse()` which clears the contents of `udp.outStream`. You can skip this call if you want to send the same data to multiple addresses.
-- Writing data. This happens via `udp.outStream.writeX` with writeX being one of the write methods mentioned above. e.g. `udp.outStream.writeString('Hello, world!')`. You can call as many write methods as you want. The data will be written in the same order you call the methods. The recipient has to read it in the same order. Make sure that you don't write too much data into a single message (MTU limits).
-- Calling `udp.sendResponse()` will send the data to the address and port of the last sender. Alternatively you can use `udp.sendResponseTo(addr, port)` to send the message to a specified address and port.
+- `udp.startResponse()` resets the contents of `udp.outStream`. By default new responses will have a maximum size of 1024 bytes. For bigger responses you can provide a size e.g. `udp.startResponse(2048)`. You can skip this call if you want to send the same data to multiple addresses.
+- Writing data. This happens via `udp.outStream.writeX` with writeX being one of the write methods mentioned above. e.g. `udp.outStream.writeString('Hello, world!')`. You can write as much data as you want this way. The maximum size is however limited by the buffer size and the MTU.
+- `udp.sendResponse()` sends the data to the address and port of the last sender. Alternatively you can use `udp.sendResponseTo(addr, port)` to send the message to a custom address and port.
 
 :warning: Sending messages will fail with an error message if the socket is not bound. You can check this with `udp.isBound`.
 
