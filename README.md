@@ -19,6 +19,7 @@ It's a wrapper around the Node.js core module "dgram" and provides some simple r
 - `readString` / `writeString` ANSI ASCII string with up to 65,535 chars, length encoded with ushort prefix  (2 bytes + 1 byte per char)
 
 :information_source: All numbers are read/written with little endian (LE) byte order!
+
 :heavy_check_mark: The module also provides automatic recovery. It closes and re-binds the socket if any error occurs. This feature can be disabled.
 
 
@@ -45,11 +46,11 @@ function onResponse(data, length, addr, port) {
   if (length > 0) {
     const byte = data.readByte()
     console.log(`First byte is ${byte}`);
-	
-	// send response
-	udp.startResponse();
-	udp.outStream.writeByte(byte);
-	udp.sendResponse();
+    
+    // send response
+    udp.startResponse();
+    udp.outStream.writeByte(byte);
+    udp.sendResponse();
   }
 }
 ```
