@@ -1,6 +1,6 @@
 {
   "name": "@unrealsoftware/node_udp",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "A basic node.js module supporting binary communication via plain UDP with useful read/write methods. Light-weight & no dependencies!",
   "keywords": [
     "udp",

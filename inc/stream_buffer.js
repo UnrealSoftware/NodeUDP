@@ -6,7 +6,8 @@ module.exports = class StreamBuffer {
 	/**
 	 * Creates a new stream buffer without allocating buffer memory.
 	 */
-	constructor() {
+	constructor(littleEndian = true) {
+		this.littleEndian = this.littleEndian
 		this.offset = 0;
 		this.buf;
 		this.len = 0;		
@@ -86,61 +87,61 @@ module.exports = class StreamBuffer {
 	}
 	
 	/**
-	 * Reads an UInt16LE / unsigned short
+	 * Reads an UInt16 / unsigned short (2 bytes)
 	 * @returns {number} the unsinged short
 	 */
 	readShort() {
 		if (this.offset <= this.len - 2) {
 			this.offset += 2;
-			return this.buf.readUInt16LE(this.offset - 2);
+			return this.littleEndian ? this.buf.readUInt16LE(this.offset - 2) : this.buf.readUInt16BE(this.offset - 2);
 		}
 		return 0;
 	}
 	
 	/**
-	 * Reads an Int32LE / signed int
+	 * Reads an Int32 / signed int (4 bytes)
 	 * @returns {number} the int
 	 */
 	readInt() {
 		if (this.offset <= this.len - 4) {
 			this.offset += 4;
-			return this.buf.readInt32LE(this.offset - 4);
+			return this.littleEndian ? this.buf.readInt32LE(this.offset - 4) : this.buf.readInt32BE(this.offset - 4);
 		}
 		return 0;
 	}
 
 	/**
-	 * Reads a BigInt64LE / signed long
+	 * Reads a BigInt64 / signed long (8 bytes)
 	 * @returns {number} the long
 	 */
 	readLong() {
 		if (this.offset <= this.len - 8) {
 			this.offset += 8;
-			return this.buf.readBigInt64LE(this.offset - 8);
+			return this.littleEndian ? this.buf.readBigInt64LE(this.offset - 8) : this.buf.readBigInt64BE(this.offset - 8);
 		}
 		return 0;
 	}
 
 	/**
-	 * Reads a FloatLE / float
+	 * Reads a FloatLE / float (4 bytes)
 	 * @returns {number} the float
 	 */
 	readFloat() {
 		if (this.offset <= this.len - 4) {
 			this.offset += 4;
-			return this.buf.readFloatLE(this.offset - 4);
+			return this.littleEndian ? this.buf.readFloatLE(this.offset - 4) : this.buf.readFloatBE(this.offset - 4);
 		}
 		return 0;
 	}
 
 	/**
-	 * Reads a DoubleLE / double
+	 * Reads a DoubleLE / double (8 bytes)
 	 * @returns {number} the double
 	 */
 	readDouble() {
 		if (this.offset <= this.len - 8) {
 			this.offset += 8;
-			return this.buf.readDoubleLE(this.offset - 8);
+			return this.littleEndian ? this.buf.readDoubleLE(this.offset - 8) : this.buf.readDoubleBE(this.offset - 8);
 		}
 		return 0;
 	}
@@ -184,7 +185,7 @@ module.exports = class StreamBuffer {
 		
 		let result = '';
 		this.offset += 2;
-		const strLen = this.buf.readUInt16LE(this.offset - 2);
+		const strLen = this.littleEndian ? this.buf.readUInt16LE(this.offset - 2) : this.buf.readUInt16BE(this.offset - 2);
 		
 		if (this.offset + strLen > this.len) {
 			return '';
@@ -213,47 +214,67 @@ module.exports = class StreamBuffer {
 	}
 	
 	/**
-	 * Writes an UInt16LE / unsigned short
+	 * Writes an UInt16 / unsigned short (2 bytes)
 	 * @param {number} value - the unsinged short
 	 */
 	writeShort(value) {
-		this.buf.writeUInt16LE(value, this.offset);
+		if (this.littleEndian) {
+			this.buf.writeUInt16LE(value, this.offset);
+		} else {
+			this.buf.writeUInt16BE(value, this.offset);
+		}
 		this.offset += 2;
 	}
 	
 	/**
-	 * Writes an Int32LE / signed int
+	 * Writes an Int32 / signed int (4 bytes)
 	 * @param {number} value - the int
 	 */
 	writeInt(value) {
-		this.buf.writeInt32LE(value, this.offset);
+		if (this.littleEndian) {
+			this.buf.writeInt32LE(value, this.offset);
+		} else {
+			this.buf.writeInt32BE(value, this.offset);
+		}
 		this.offset += 4;
 	}
 	
 	/**
-	 * Writes a BigInt64LE / signed long
+	 * Writes a BigInt64 / signed long (8 bytes)
 	 * @param {number} value - the long
 	 */
 	writeLong() {
-		this.buf.writeBigInt64LE(value, this.offset);
+		if (this.littleEndian) {
+			this.buf.writeBigInt64LE(value, this.offset);
+		} else {
+			this.buf.writeBigInt64BE(value, this.offset);
+		}
 		this.offset += 8;
 	}
 
 	/**
-	 * Writes a FloatLE / float
+	 * Writes a Float / float (4 bytes)
 	 * @param {number} value - the float
 	 */
 	writeFloat() {
-		this.buf.writeFloatLE(value, this.offset);
+		if (this.littleEndian) {
+			this.buf.writeFloatLE(value, this.offset);
+		} else {
+			this.buf.writeFloatBE(value, this.offset);
+		}
 		this.offset += 4;
 	}
 
 	/**
-	 * Writes a DoubleLE / double
+	 * Writes a Double / double (8 bytes)
 	 * @param {number} value - the double
 	 */
 	writeDouble() {
-		this.buf.writeDoubleLE(value, this.offset);
+		if (this.littleEndian) {
+			this.buf.writeDoubleLE(value, this.offset);
+		} else {
+			this.buf.writeDoubleBE(value, this.offset);
+		}
 		this.offset += 8;
 	}
 
@@ -301,7 +322,11 @@ module.exports = class StreamBuffer {
 	 */
 	writeString(value) {
 		if (!value || value.length === 0) {
-			this.buf.writeUInt16LE(0, this.offset);
+			if (this.littleEndian) {
+				this.buf.writeUInt16LE(0, this.offset);
+			} else {
+				this.buf.writeUInt16BE(0, this.offset);
+			}
 			this.offset += 2;
 			return;
 		}
@@ -312,7 +337,11 @@ module.exports = class StreamBuffer {
 		
 		const strLen = value.length;
 		
-		this.buf.writeUInt16LE(strLen, this.offset);
+		if (this.littleEndian) {
+			this.buf.writeUInt16LE(strLen, this.offset);
+		} else {
+			this.buf.writeUInt16BE(strLen, this.offset);
+		}
 		this.offset += 2;
 		
 		for (let i = 0; i < strLen; i++) {

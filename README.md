@@ -10,15 +10,15 @@ It's a wrapper around the Node.js core module "dgram" and provides some simple r
 
 #### Currently comes with read/write methods for the following data types:
 - `readByte` / `writeByte` UInt8 / byte / unsigned int (1 byte) with value range 0 to 255
-- `readShort` / `writeShort` UInt16LE / ushort / unsigned int (2 bytes) with value range 0 to 65,535
-- `readInt` / `writeInt` Int32LE / int / signed int (4 bytes) with value range -2,147,483,648 to 2,147,483,647
-- `readLong` / `writeLong` Int64LE / long / signed int (8 bytes) with value range -9,223,372,036,854,775,808 to 9,223,372,036,854,775,807
-- `readFloat` / `writeFloat` FloatLE / float / single precision floating-point (4 bytes)
-- `readDouble` / `writeDouble` DoubleLE / double / double precision floating-point (8 bytes)
+- `readShort` / `writeShort` UInt16 / ushort / unsigned int (2 bytes) with value range 0 to 65,535
+- `readInt` / `writeInt` Int32 / int / signed int (4 bytes) with value range -2,147,483,648 to 2,147,483,647
+- `readLong` / `writeLong` Int64 / long / signed int (8 bytes) with value range -9,223,372,036,854,775,808 to 9,223,372,036,854,775,807
+- `readFloat` / `writeFloat` Float / float / single precision floating-point (4 bytes)
+- `readDouble` / `writeDouble` Double / double / double precision floating-point (8 bytes)
 - `readSString` / `writeSString` short ANSI ASCII string with up to 255 chars, length encoded with byte prefix (1 byte + 1 byte per char)
 - `readString` / `writeString` ANSI ASCII string with up to 65,535 chars, length encoded with ushort prefix  (2 bytes + 1 byte per char)
 
-:information_source: All numbers are read/written with little endian (LE) byte order!
+:information_source: All numbers are read/written with little endian (LE) byte order by default. This can be changed with a parameter in the NodeUdp constructor.
 
 :heavy_check_mark: The module also provides automatic recovery. It closes and re-binds the socket if any error occurs. This feature can be disabled.
 
@@ -27,9 +27,17 @@ It's a wrapper around the Node.js core module "dgram" and provides some simple r
 We are talking about plain binary UDP here. Low level networking. No extra protocol on top. This means it comes with the typical UDP features/limitations:
 - Unreliable: Messages can get lost. No acknowledgement or re-send mechanism.
 - No guaranteed order: Messages can arrive in any order (or not at all).
-- Message size limitation: Max. size of a message is limited by the MTU (which is determined by used hard- and software). From my experience keeping the payload size below ~1200 bytes should work fine in most cases.
-- Currently only a few popular data types are supported and they are all little endian. Support for big endian and more types could be added easily.
-- Currently the string methods are for sending ANSI ASCII strings only. UTF-8 or other encodings could be added easily though.
+- Message size limitation: The size of messages is limited by the MTU - which depends on used hard- and software. Keeping the payload size below ~1200 bytes should work fine in most cases. Bigger messages might not arrive.
+- Unencrypted: UDP has no built-in encryption.
+
+You can work around most of these problems by building your own protocol on top of UDP (which can be quite challenging depending on your requirements).
+Encryption can be added by encrypting data before sending it and decrypting it after receiving it.
+
+:warning: Do not send private data via UDP - unless you encrypted beforehand!
+
+The current version of NodeUdp has a few limitations on its own:
+- Few data types: Only a few popular data types are supported. More types (mostly unsigned ones) could be added easily.
+- ANSI ASCII only: The string methods are for sending ANSI ASCII strings only. UTF-8 or other encodings could be added easily though.
 
 ## Sample
 Here's a server which receives messages, reads the first byte and sends it back:
@@ -56,14 +64,15 @@ function onResponse(data, length, addr, port) {
 ```
 
 ## Constructor
-The `NodeUdp` constructor has 4 parameters:
+The `NodeUdp` constructor has 5 parameters:
 ```javascript
-const udp = new NodeUdp(onResponse, startPort = -1, rebindOnError = true, rebindDelay = 3000)
+const udp = new NodeUdp(onResponse, startPort = -1, rebindOnError = true, rebindDelay = 3000, littleEndian = true)
 ```
 - `onResponse`: The response callback. Mandatory. See "Reading Messages" for details.
 - `startPort` (optional): The port the UDP socket will be bound to on construction. If you don't provide a port you have to bind the socket manually using `udp.bindSocket(port)`.
 - `rebindOnError` (optional): Try to bind the socket again after an error? This defaults to true. Set to false if you don't want the socket to be bound automatically.
 - `rebindDelay` (optional): Delay (in milliseconds) after which the program will attempt to bind the socket again after an error occurred. Defaults to 3000 ms (3 milliseconds). Not relevant if `rebindOnError` is false.
+- `littleEndian` (optional): Sets read/write methods to little endian (true, default) or big endian (false).
 
 ## Receiving Messages
 Messages are read in the response callback you specify as the first parameter in the constructor of `NodeUdp`. It has these parameters:
@@ -77,7 +86,7 @@ Messages are read in the response callback you specify as the first parameter in
 ## Sending Messages
 Sending a message happens in 3 steps:
 - `udp.startResponse()` resets the contents of `udp.outStream`. By default new responses will have a maximum size of 1024 bytes. For bigger responses you can provide a size e.g. `udp.startResponse(2048)`. You can skip this call if you want to send the same data to multiple addresses.
-- Writing data. This happens via `udp.outStream.writeX` with writeX being one of the write methods mentioned above. e.g. `udp.outStream.writeString('Hello, world!')`. You can write as much data as you want this way. The maximum size is however limited by the buffer size and the MTU.
+- Writing data. This is done via `udp.outStream.writeX` with writeX being one of the write methods mentioned above. e.g. `udp.outStream.writeString('Hello, world!')`. You can write as much data as you want this way. The maximum size is however limited by the buffer size and the MTU.
 - `udp.sendResponse()` sends the data to the address and port of the last sender. Alternatively you can use `udp.sendResponseTo(addr, port)` to send the message to a custom address and port.
 
 :warning: Sending messages will fail with an error message if the socket is not bound. You can check this with `udp.isBound`.

@@ -10,11 +10,13 @@ module.exports = class NodeUdp {
 	 * @param {number} startPort - Instantly bind to this port (-1 = to not bind)
 	 * @param {boolean} rebindOnError - Automatically rebind when a socket error occurs?
 	 * @param {number} rebindDelay - Delay before trying to rebind (in milliseconds)
+	 * @param {boolean} littleEndian - Use little endian for numbers (true) or big endian (false)
 	 */
-	constructor(onResponse, startPort = -1, rebindOnError = true, rebindDelay = 3000) {
+	constructor(onResponse, startPort = -1, rebindOnError = true, rebindDelay = 3000, littleEndian = true) {
 		this.onResponse = onResponse;
 		this.rebindOnError = rebindOnError;
 		this.rebindDelay = rebindDelay;
+		this.littleEndian = littleEndian;
 
 		this.port = 0;
 		this.isBound = false;
@@ -23,8 +25,8 @@ module.exports = class NodeUdp {
 		this.srcAddress = null;
 		this.srcPort = null;
 
-		this.inStream = new StreamBuffer();
-		this.outStream = new StreamBuffer();
+		this.inStream = new StreamBuffer(littleEndian);
+		this.outStream = new StreamBuffer(littleEndian);
 
 		this.udp.on('listening', () => {
 			this.isBound = true;
