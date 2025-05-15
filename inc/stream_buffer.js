@@ -7,7 +7,7 @@ module.exports = class StreamBuffer {
 	 * Creates a new stream buffer without allocating buffer memory.
 	 */
 	constructor(littleEndian = true) {
-		this.littleEndian = this.littleEndian
+		this.littleEndian = littleEndian
 		this.offset = 0;
 		this.buf;
 		this.len = 0;		
@@ -112,7 +112,7 @@ module.exports = class StreamBuffer {
 
 	/**
 	 * Reads a BigInt64 / signed long (8 bytes)
-	 * @returns {number} the long
+	 * @returns {bigint} the long
 	 */
 	readLong() {
 		if (this.offset <= this.len - 8) {
@@ -241,9 +241,9 @@ module.exports = class StreamBuffer {
 	
 	/**
 	 * Writes a BigInt64 / signed long (8 bytes)
-	 * @param {number} value - the long
+	 * @param {bigint} value - the long
 	 */
-	writeLong() {
+	writeLong(value) {
 		if (this.littleEndian) {
 			this.buf.writeBigInt64LE(value, this.offset);
 		} else {
@@ -256,7 +256,7 @@ module.exports = class StreamBuffer {
 	 * Writes a Float / float (4 bytes)
 	 * @param {number} value - the float
 	 */
-	writeFloat() {
+	writeFloat(value) {
 		if (this.littleEndian) {
 			this.buf.writeFloatLE(value, this.offset);
 		} else {
@@ -269,7 +269,7 @@ module.exports = class StreamBuffer {
 	 * Writes a Double / double (8 bytes)
 	 * @param {number} value - the double
 	 */
-	writeDouble() {
+	writeDouble(value) {
 		if (this.littleEndian) {
 			this.buf.writeDoubleLE(value, this.offset);
 		} else {
