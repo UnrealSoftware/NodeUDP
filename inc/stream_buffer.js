@@ -7,7 +7,7 @@ module.exports = class StreamBuffer {
 	 * Creates a new stream buffer without allocating buffer memory.
 	 */
 	constructor(littleEndian = true) {
-		this.littleEndian = littleEndian
+		this.littleEndian = littleEndian;
 		this.offset = 0;
 		this.buf;
 		this.len = 0;		
@@ -29,8 +29,11 @@ module.exports = class StreamBuffer {
 	 */
 	clearBuffer(size = 1024) {
 		this.offset = 0;
-		this.buf = Buffer.alloc(size);
-		this.len = this.buf.byteLength;
+		if (!this.buf || this.buf.byteLength < size) {
+			this.buf = Buffer.allocUnsafe(size);
+		}
+		this.buf.fill(0, 0, size);
+		this.len = size;
 	}
 	
 	/**
@@ -62,12 +65,7 @@ module.exports = class StreamBuffer {
 	 */
 	trim() {
 		if (this.buf.byteLength !== this.offset) {
-			console.log(`resizing buffer from len ${this.buf.byteLength} to ${this.offset}`)
-			const tmpBuf = Buffer.alloc(this.offset);
-			for (let i = 0; i < this.offset; i++) {
-				tmpBuf[i] = this.buf[i];
-			}
-			this.buf = tmpBuf;
+			this.buf = this.buf.slice(0, this.offset);
 			this.len = this.offset;
 		}
 	}

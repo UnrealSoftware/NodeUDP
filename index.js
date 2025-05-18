@@ -1,5 +1,5 @@
 const StreamBuffer = require('./inc/stream_buffer.js');
-const dgram = require('dgram');
+const dgram = require('node:dgram');
 
 module.exports = class NodeUdp {
 	/**
@@ -49,12 +49,11 @@ module.exports = class NodeUdp {
 		
 		this.udp.on('message', (msg, rinfo) => {
 			this.inStream.setBuffer(msg);
-			const length = this.inStream.length();
 		
 			this.srcAddress = rinfo.address;
 			this.srcPort = rinfo.port;
 
-			onResponse(this.inStream, length, this.srcAddress, this.srcPort);
+			onResponse(this.inStream, rinfo.size, this.srcAddress, this.srcPort);
 		});
 
 		if (startPort > -1) {
@@ -68,8 +67,7 @@ module.exports = class NodeUdp {
 	 * @param {number} port - UDP port to bind to (0-65535)
 	 */
 	bindSocket(port) {
-		if (this.isBound)
-		{
+		if (this.isBound) {
 			this.udp.close();
 			this.isBound = false;
 		}
