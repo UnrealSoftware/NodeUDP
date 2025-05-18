@@ -7,7 +7,7 @@ module.exports = class StreamBuffer {
 	 * Creates a new stream buffer without allocating buffer memory.
 	 */
 	constructor(littleEndian = true) {
-		this.littleEndian = this.littleEndian
+		this.littleEndian = littleEndian;
 		this.offset = 0;
 		this.buf;
 		this.len = 0;		
@@ -29,8 +29,11 @@ module.exports = class StreamBuffer {
 	 */
 	clearBuffer(size = 1024) {
 		this.offset = 0;
-		this.buf = Buffer.alloc(size);
-		this.len = this.buf.byteLength;
+		if (!this.buf || this.buf.byteLength < size) {
+			this.buf = Buffer.allocUnsafe(size);
+		}
+		this.buf.fill(0, 0, size);
+		this.len = size;
 	}
 	
 	/**
@@ -62,12 +65,7 @@ module.exports = class StreamBuffer {
 	 */
 	trim() {
 		if (this.buf.byteLength !== this.offset) {
-			console.log(`resizing buffer from len ${this.buf.byteLength} to ${this.offset}`)
-			const tmpBuf = Buffer.alloc(this.offset);
-			for (let i = 0; i < this.offset; i++) {
-				tmpBuf[i] = this.buf[i];
-			}
-			this.buf = tmpBuf;
+			this.buf = this.buf.slice(0, this.offset);
 			this.len = this.offset;
 		}
 	}
@@ -112,7 +110,7 @@ module.exports = class StreamBuffer {
 
 	/**
 	 * Reads a BigInt64 / signed long (8 bytes)
-	 * @returns {number} the long
+	 * @returns {bigint} the long
 	 */
 	readLong() {
 		if (this.offset <= this.len - 8) {
@@ -241,9 +239,9 @@ module.exports = class StreamBuffer {
 	
 	/**
 	 * Writes a BigInt64 / signed long (8 bytes)
-	 * @param {number} value - the long
+	 * @param {bigint} value - the long
 	 */
-	writeLong() {
+	writeLong(value) {
 		if (this.littleEndian) {
 			this.buf.writeBigInt64LE(value, this.offset);
 		} else {
@@ -256,7 +254,7 @@ module.exports = class StreamBuffer {
 	 * Writes a Float / float (4 bytes)
 	 * @param {number} value - the float
 	 */
-	writeFloat() {
+	writeFloat(value) {
 		if (this.littleEndian) {
 			this.buf.writeFloatLE(value, this.offset);
 		} else {
@@ -269,7 +267,7 @@ module.exports = class StreamBuffer {
 	 * Writes a Double / double (8 bytes)
 	 * @param {number} value - the double
 	 */
-	writeDouble() {
+	writeDouble(value) {
 		if (this.littleEndian) {
 			this.buf.writeDoubleLE(value, this.offset);
 		} else {
