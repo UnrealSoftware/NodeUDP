@@ -9,8 +9,8 @@ module.exports = class StreamBuffer {
 	constructor(littleEndian = true) {
 		this.littleEndian = littleEndian;
 		this.offset = 0;
-		this.buf;
-		this.len = 0;		
+		this.buf = null;
+		this.len = 0;
 	}
 
 	/**
@@ -22,7 +22,7 @@ module.exports = class StreamBuffer {
 		this.buf = setbuf;
 		this.len = setbuf.byteLength;
 	}
-	
+
 	/**
 	 * Sets an empty buffer and resets the offset.
 	 * @param {number} size - size (in bytes) of the buffer
@@ -35,7 +35,7 @@ module.exports = class StreamBuffer {
 		this.buf.fill(0, 0, size);
 		this.len = size;
 	}
-	
+
 	/**
 	 * Gets the length of the buffer in bytes.
 	 * @returns {number} the length in bytes
@@ -43,7 +43,7 @@ module.exports = class StreamBuffer {
 	length() {
 		return this.len;
 	}
-	
+
 	/**
 	 * Checks if there is still readable data in this buffer.
 	 * @returns {boolean} true if can read at least 1 byte, false otherwise
@@ -51,7 +51,7 @@ module.exports = class StreamBuffer {
 	canRead() {
 		return this.offset < this.len;
 	}
-	
+
 	/**
 	 * Gets the number of readable bytes in this buffer.
 	 * @returns {number} the amount of readable bytes
@@ -69,41 +69,42 @@ module.exports = class StreamBuffer {
 			this.len = this.offset;
 		}
 	}
-	
+
 	//#region Read
-	
+
 	/**
 	 * Reads a single byte (unsigned)
 	 * @returns {number} the byte
 	 */
 	readByte() {
 		if (this.offset <= this.len - 1) {
-			this.offset += 1;
-			return this.buf.readUInt8(this.offset - 1);
+			return this.buf.readUInt8(this.offset++);
 		}
 		return 0;
 	}
-	
+
 	/**
-	 * Reads an UInt16 / unsigned short (2 bytes)
-	 * @returns {number} the unsinged short
+	 * Reads a UInt16 / unsigned short (2 bytes)
+	 * @returns {number} the unsigned short
 	 */
 	readShort() {
 		if (this.offset <= this.len - 2) {
+			const value = this.littleEndian ? this.buf.readUInt16LE(this.offset) : this.buf.readUInt16BE(this.offset);
 			this.offset += 2;
-			return this.littleEndian ? this.buf.readUInt16LE(this.offset - 2) : this.buf.readUInt16BE(this.offset - 2);
+			return value;
 		}
 		return 0;
 	}
-	
+
 	/**
 	 * Reads an Int32 / signed int (4 bytes)
 	 * @returns {number} the int
 	 */
 	readInt() {
 		if (this.offset <= this.len - 4) {
+			const value = this.littleEndian ? this.buf.readInt32LE(this.offset) : this.buf.readInt32BE(this.offset);
 			this.offset += 4;
-			return this.littleEndian ? this.buf.readInt32LE(this.offset - 4) : this.buf.readInt32BE(this.offset - 4);
+			return value;
 		}
 		return 0;
 	}
@@ -114,106 +115,107 @@ module.exports = class StreamBuffer {
 	 */
 	readLong() {
 		if (this.offset <= this.len - 8) {
+			const value = this.littleEndian ? this.buf.readBigInt64LE(this.offset) : this.buf.readBigInt64BE(this.offset);
 			this.offset += 8;
-			return this.littleEndian ? this.buf.readBigInt64LE(this.offset - 8) : this.buf.readBigInt64BE(this.offset - 8);
+			return value;
 		}
-		return 0;
+		return 0n;
 	}
 
 	/**
-	 * Reads a FloatLE / float (4 bytes)
+	 * Reads a Float / float (4 bytes)
 	 * @returns {number} the float
 	 */
 	readFloat() {
 		if (this.offset <= this.len - 4) {
+			const value = this.littleEndian ? this.buf.readFloatLE(this.offset) : this.buf.readFloatBE(this.offset);
 			this.offset += 4;
-			return this.littleEndian ? this.buf.readFloatLE(this.offset - 4) : this.buf.readFloatBE(this.offset - 4);
+			return value;
 		}
 		return 0;
 	}
 
 	/**
-	 * Reads a DoubleLE / double (8 bytes)
+	 * Reads a Double / double (8 bytes)
 	 * @returns {number} the double
 	 */
 	readDouble() {
 		if (this.offset <= this.len - 8) {
+			const value = this.littleEndian ? this.buf.readDoubleLE(this.offset) : this.buf.readDoubleBE(this.offset);
 			this.offset += 8;
-			return this.littleEndian ? this.buf.readDoubleLE(this.offset - 8) : this.buf.readDoubleBE(this.offset - 8);
+			return value;
 		}
 		return 0;
 	}
-	
+
 	/**
-	 * Reads an ANSI ASCII string with a length of up to 255 chars.
+	 * Reads a printable ASCII string with a length of up to 255 chars.
 	 * Internally the string data is prefixed with a single byte for the length.
+	 * Non-printable ASCII chars are replaced with 'x'.
 	 * @returns {string} the string
 	 */
 	readSString() {
 		if (this.offset >= this.len) {
 			return '';
 		}
-		
-		let result = '';
-		this.offset += 1;
-		const strLen = this.buf.readUInt8(this.offset - 1);
-		
+
+		const strLen = this.buf.readUInt8(this.offset++);
+
 		if (this.offset + strLen > this.len) {
 			return '';
 		}
-		
+
+		let result = '';
 		for (let i = 0; i < strLen; i++) {
-			this.offset += 1;
-			var charCode = this.buf.readUInt8(this.offset - 1);
-			result += String.fromCharCode(charCode);
+			const charCode = this.buf.readUInt8(this.offset++);
+			result += (charCode >= 32 && charCode <= 126) ? String.fromCharCode(charCode) : 'x';
 		}
-		
+
 		return result;
 	}
-	
+
 	/**
-	 * Reads an ANSI ASCII string with a length of up to 65,535 chars.
-	 * Internally the string data is prefixed with a ushort (2 bytes) for the length.
+	 * Reads a printable ASCII string with a length of up to 65,535 chars.
+	 * Internally the string data is prefixed with a UInt16 (2 bytes) for the length.
+	 * Non-printable ASCII chars are replaced with 'x'.
 	 * @returns {string} the string
 	 */
 	readString() {
 		if (this.offset + 1 >= this.len) {
 			return '';
 		}
-		
-		let result = '';
+
+		const strLen = this.littleEndian ? this.buf.readUInt16LE(this.offset) : this.buf.readUInt16BE(this.offset);
 		this.offset += 2;
-		const strLen = this.littleEndian ? this.buf.readUInt16LE(this.offset - 2) : this.buf.readUInt16BE(this.offset - 2);
-		
+
 		if (this.offset + strLen > this.len) {
 			return '';
 		}
-		
+
+		let result = '';
 		for (let i = 0; i < strLen; i++) {
-			this.offset += 1;
-			var charCode = this.buf.readUInt8(this.offset - 1);
-			result += String.fromCharCode(charCode);
+			const charCode = this.buf.readUInt8(this.offset++);
+			result += (charCode >= 32 && charCode <= 126) ? String.fromCharCode(charCode) : 'x';
 		}
-		
+
 		return result;
 	}
 
 	//#endregion Read
-	
+
 	//#region Write
-	
+
 	/**
 	 * Writes a single byte (unsigned)
 	 * @param {number} value - the byte
 	 */
 	writeByte(value) {
-		this.buf.writeUInt8(value, this.offset);
-		this.offset += 1;
+		this.buf.writeUInt8(value, this.offset++);
 	}
-	
+
 	/**
-	 * Writes an UInt16 / unsigned short (2 bytes)
-	 * @param {number} value - the unsinged short
+	 * Writes a UInt16 / unsigned short (2 bytes)
+	 * @param {number} value - the unsigned short
 	 */
 	writeShort(value) {
 		if (this.littleEndian) {
@@ -223,7 +225,7 @@ module.exports = class StreamBuffer {
 		}
 		this.offset += 2;
 	}
-	
+
 	/**
 	 * Writes an Int32 / signed int (4 bytes)
 	 * @param {number} value - the int
@@ -236,7 +238,7 @@ module.exports = class StreamBuffer {
 		}
 		this.offset += 4;
 	}
-	
+
 	/**
 	 * Writes a BigInt64 / signed long (8 bytes)
 	 * @param {bigint} value - the long
@@ -277,45 +279,37 @@ module.exports = class StreamBuffer {
 	}
 
 	/**
-	 * Writes an ANSI ASCII string with a length of up to 255 chars.
+	 * Writes a printable ASCII string with a length of up to 255 chars.
 	 * Internally the string data is prefixed with a single byte for the length.
-	 * Strings with a length > 255 will be cut off.
-	 * Non-ANSI-ASCII chars will be replaced with 'x'.
+	 * Non-printable ASCII chars (outside 32-126) are replaced with 'x'.
 	 * @param {string} value - the string
 	 */
 	writeSString(value) {
 		if (!value || value.length === 0) {
-			this.buf.writeUInt8(0, this.offset);
-			this.offset += 1;
+			this.buf.writeUInt8(0, this.offset++);
 			return;
 		}
-		
+
 		if (value.length > 255) {
 			value = value.substring(0, 255);
 		}
-		
+
 		const strLen = value.length;
-		
-		this.buf.writeUInt8(strLen, this.offset);
-		this.offset += 1;
-		
+		this.buf.writeUInt8(strLen, this.offset++);
+
 		for (let i = 0; i < strLen; i++) {
-			var charCode = value.charCodeAt(i);
-			if (charCode < 0 || charCode > 255)
-			{
-				// use 'x' for non-ASCII chars
-				charCode = 120;
+			let charCode = value.charCodeAt(i);
+			if (charCode < 32 || charCode > 126) {
+				charCode = 120; // 'x'
 			}
-			this.buf.writeUInt8(charCode, this.offset);
-			this.offset += 1;
+			this.buf.writeUInt8(charCode, this.offset++);
 		}
 	}
-	
+
 	/**
-	 * Writes an ANSI ASCII string with a length of up to 65,535 chars.
-	 * Internally the string data is prefixed with a ushort (2 bytes) for the length.
-	 * Strings with a length > 65,535 will be cut off.
-	 * Non-ANSI-ASCII chars will be replaced with 'x'.
+	 * Writes a printable ASCII string with a length of up to 65,535 chars.
+	 * Internally the string data is prefixed with a UInt16 (2 bytes) for the length.
+	 * Non-printable ASCII chars (outside 32-126) are replaced with 'x'.
 	 * @param {string} value - the string
 	 */
 	writeString(value) {
@@ -328,29 +322,26 @@ module.exports = class StreamBuffer {
 			this.offset += 2;
 			return;
 		}
-		
+
 		if (value.length > 65535) {
 			value = value.substring(0, 65535);
 		}
-		
+
 		const strLen = value.length;
-		
+
 		if (this.littleEndian) {
 			this.buf.writeUInt16LE(strLen, this.offset);
 		} else {
 			this.buf.writeUInt16BE(strLen, this.offset);
 		}
 		this.offset += 2;
-		
+
 		for (let i = 0; i < strLen; i++) {
-			var charCode = value.charCodeAt(i);
-			if (charCode < 0 || charCode > 255)
-			{
-				// use 'x' for non-ASCII chars
-				charCode = 120;
+			let charCode = value.charCodeAt(i);
+			if (charCode < 32 || charCode > 126) {
+				charCode = 120; // 'x'
 			}
-			this.buf.writeUInt8(charCode, this.offset);
-			this.offset += 1;
+			this.buf.writeUInt8(charCode, this.offset++);
 		}
 	}
 
